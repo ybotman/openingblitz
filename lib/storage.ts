@@ -30,7 +30,57 @@ export interface StoredData {
 }
 
 const STORAGE_KEY = 'openingblitz_data';
+const VISIT_KEY = 'openingblitz_visits';
 const CURRENT_VERSION = 1;
+
+// Visit tracking
+export interface VisitData {
+  count: number;
+  firstVisit: string;
+  lastVisit: string;
+}
+
+export function getVisitData(): VisitData {
+  if (typeof window === 'undefined') {
+    return { count: 0, firstVisit: '', lastVisit: '' };
+  }
+
+  try {
+    const raw = localStorage.getItem(VISIT_KEY);
+    if (!raw) {
+      return { count: 0, firstVisit: '', lastVisit: '' };
+    }
+    return JSON.parse(raw) as VisitData;
+  } catch {
+    return { count: 0, firstVisit: '', lastVisit: '' };
+  }
+}
+
+export function recordVisit(): VisitData {
+  if (typeof window === 'undefined') {
+    return { count: 0, firstVisit: '', lastVisit: '' };
+  }
+
+  const now = new Date().toISOString();
+  const existing = getVisitData();
+
+  const updated: VisitData = {
+    count: existing.count + 1,
+    firstVisit: existing.firstVisit || now,
+    lastVisit: now,
+  };
+
+  localStorage.setItem(VISIT_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+export function isFirstVisit(): boolean {
+  return getVisitData().count === 0;
+}
+
+export function shouldShowMilestone(visitCount: number): boolean {
+  return visitCount > 1 && visitCount % 5 === 0;
+}
 
 // Initialize or get stored data
 export function getStoredData(): StoredData {

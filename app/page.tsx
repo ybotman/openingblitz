@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DrillGame } from '@/components/DrillGame';
 import { SessionHistory } from '@/components/SessionHistory';
+import { Welcome } from '@/components/Welcome';
+import { About } from '@/components/About';
 import { DrillConfig } from '@/lib/types';
-import { SessionRecord } from '@/lib/storage';
+import { SessionRecord, recordVisit, isFirstVisit, shouldShowMilestone, getVisitData } from '@/lib/storage';
 
-type Tab = 'play' | 'history' | 'blunders';
+type Tab = 'play' | 'history' | 'blunders' | 'about';
 
 export default function Home() {
   const [config, setConfig] = useState<DrillConfig>({
@@ -18,6 +20,21 @@ export default function Home() {
   const [showConfig, setShowConfig] = useState(true);
   const [lastResult, setLastResult] = useState<{ score: number; moves: number } | null>(null);
   const [replaySession, setReplaySession] = useState<SessionRecord | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [milestone, setMilestone] = useState<number | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Check first visit and record visit on mount
+  useEffect(() => {
+    if (isFirstVisit()) {
+      setShowWelcome(true);
+    }
+    const visitData = recordVisit();
+    if (shouldShowMilestone(visitData.count)) {
+      setMilestone(visitData.count);
+    }
+    setIsLoaded(true);
+  }, []);
 
   const handleGameEnd = (score: number, moves: number) => {
     setLastResult({ score, moves });
@@ -29,7 +46,6 @@ export default function Home() {
   };
 
   const handleReplay = (session: SessionRecord) => {
-    // Set config to match the session
     setConfig({
       ratingLevel: session.ratingLevel,
       timeLimit: session.timeLimit,
@@ -45,8 +61,49 @@ export default function Home() {
     setReplaySession(null);
   };
 
+  const handleWelcomeContinue = () => {
+    setShowWelcome(false);
+  };
+
+  const dismissMilestone = () => {
+    setMilestone(null);
+  };
+
+  // Don't render until we've checked localStorage (avoid hydration mismatch)
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show welcome screen for first-time visitors
+  if (showWelcome) {
+    return <Welcome onContinue={handleWelcomeContinue} />;
+  }
+
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
+      {/* Milestone Banner */}
+      {milestone && (
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 py-3 px-4">
+          <div className="max-w-lg mx-auto flex justify-between items-center">
+            <div>
+              <span className="font-semibold">Welcome back! </span>
+              <span className="text-blue-100">Visit #{milestone}. </span>
+              <span className="text-sm text-blue-200">Sign up to keep your stats forever!</span>
+            </div>
+            <button
+              onClick={dismissMilestone}
+              className="text-white/70 hover:text-white text-xl"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-zinc-800 py-4 px-6 shadow-lg">
         <div className="max-w-lg mx-auto flex justify-between items-center">
@@ -61,7 +118,7 @@ export default function Home() {
               onClick={handleBackToConfig}
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
-              ⚙️ Settings
+              Settings
             </button>
           )}
         </div>
@@ -70,7 +127,7 @@ export default function Home() {
       {/* Tabs */}
       <div className="bg-zinc-800/50 border-b border-zinc-700">
         <div className="max-w-lg mx-auto flex">
-          {(['play', 'history', 'blunders'] as Tab[]).map((tab) => (
+          {(['play', 'history', 'blunders', 'about'] as Tab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -86,9 +143,10 @@ export default function Home() {
                   : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              {tab === 'play' && '🎮 Play'}
-              {tab === 'history' && '📜 History'}
-              {tab === 'blunders' && '💥 Blunders'}
+              {tab === 'play' && 'Play'}
+              {tab === 'history' && 'History'}
+              {tab === 'blunders' && 'Blunders'}
+              {tab === 'about' && 'About'}
             </button>
           ))}
         </div>
@@ -186,7 +244,7 @@ export default function Home() {
                   onClick={startNewGame}
                   className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl text-xl transition-colors"
                 >
-                  🚀 START DRILL
+                  START DRILL
                 </button>
 
                 {/* Info */}
@@ -226,6 +284,9 @@ export default function Home() {
             <SessionHistory onReplay={handleReplay} showBlundersOnly={true} />
           </div>
         )}
+
+        {/* About Tab */}
+        {activeTab === 'about' && <About />}
       </main>
     </div>
   );

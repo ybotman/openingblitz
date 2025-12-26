@@ -114,3 +114,9 @@ export function getOpponentMove(response: LichessResponse): LichessMove | null {
 
   return response.moves[0]; // Fallback
 }
+
+// Check if position is in the opening book
+export function isInBook(response: LichessResponse): boolean {
+  const totalGamesPlayed = response.white + response.draws + response.black;
+  return response.moves.length > 0 && totalGamesPlayed > 100;
+}

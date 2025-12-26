@@ -6,7 +6,7 @@ import { ChessBoard } from './ChessBoard';
 import { Timer } from './Timer';
 import { MoveHints } from './MoveHints';
 import { MoveHistory } from './MoveHistory';
-import { getOpeningMoves, evaluateMove, getOpponentMove } from '@/lib/lichess';
+import { getOpeningMoves, evaluateMove, getOpponentMove, isInBook } from '@/lib/lichess';
 import { DrillConfig, MoveResult, POINTS, MoveRating, LichessResponse } from '@/lib/types';
 import { saveSession, SessionRecord, MoveRecord } from '@/lib/storage';
 
@@ -40,6 +40,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
   const [replayAlert, setReplayAlert] = useState<{ type: 'deviation' | 'blunder' | 'fixed'; message: string } | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [undoState, setUndoState] = useState<{ fen: string; moveIndex: number } | null>(null);
+  const [outOfBook, setOutOfBook] = useState(false);
 
   // Store current position data for move evaluation
   const positionDataRef = useRef<LichessResponse | null>(null);
@@ -82,6 +83,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
     setReplayAlert(null);
     setCanUndo(false);
     setUndoState(null);
+    setOutOfBook(false);
     moveRecordsRef.current = [];
     positionDataRef.current = null;
 
@@ -122,6 +124,25 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
     }
   }, [config.playerColor, config.ratingLevel, prefetchPositionData, isReplayMode, replaySession]);
 
+  // End game due to out of book
+  const endGameOutOfBook = useCallback(() => {
+    setIsRunning(false);
+    setOutOfBook(true);
+
+    // Save session
+    const blunderCount = moveRecordsRef.current.filter(m => m.rating === 'blunder').length;
+    saveSession({
+      ratingLevel: config.ratingLevel,
+      playerColor: config.playerColor,
+      timeLimit: config.timeLimit,
+      totalScore: score,
+      movesPlayed,
+      moves: moveRecordsRef.current,
+      openingName: openingName + ' (left book)',
+      blunderCount,
+    });
+  }, [config, score, movesPlayed, openingName]);
+
   // Make opponent's move
   const makeOpponentMove = useCallback(async (currentFen: string, moveIndex: number) => {
     setIsThinking(true);
@@ -136,8 +157,17 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
       // If no replay move, or not in replay mode, get from API
       if (!opponentMoveSan) {
         const response = await getOpeningMoves(currentFen, config.ratingLevel);
-        const opponentMove = getOpponentMove(response);
-        opponentMoveSan = opponentMove?.san || null;
+
+        // Check if we're still in the opening book
+        if (isInBook(response)) {
+          const opponentMove = getOpponentMove(response);
+          opponentMoveSan = opponentMove?.san || null;
+        } else {
+          // OUT OF BOOK - end the game
+          setIsThinking(false);
+          endGameOutOfBook();
+          return;
+        }
       }
 
       if (opponentMoveSan) {
@@ -156,29 +186,24 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
             await prefetchPositionData(newGame.fen());
           }
         } catch (moveError) {
-          console.warn('Invalid opponent move:', opponentMoveSan, 'Falling back to API');
-          // If move fails, get a fresh move from API
-          const response = await getOpeningMoves(currentFen, config.ratingLevel);
-          const fallbackMove = getOpponentMove(response);
-          if (fallbackMove) {
-            try {
-              const move = newGame.move(fallbackMove.san);
-              if (move) {
-                setGame(newGame);
-                setLastMove({ from: move.from as Square, to: move.to as Square });
-                await prefetchPositionData(newGame.fen());
-              }
-            } catch {
-              console.error('Fallback move also failed');
-            }
-          }
+          console.warn('Invalid opponent move:', opponentMoveSan);
+          // Move failed - likely out of book
+          endGameOutOfBook();
+          return;
         }
+      } else {
+        // No move available - out of book
+        endGameOutOfBook();
+        return;
       }
     } catch (error) {
       console.error('Error getting opponent move:', error);
+      // API error - end gracefully
+      endGameOutOfBook();
+      return;
     }
     setIsThinking(false);
-  }, [config.ratingLevel, prefetchPositionData, isReplayMode, replaySession]);
+  }, [config.ratingLevel, prefetchPositionData, isReplayMode, replaySession, endGameOutOfBook]);
 
   // Handle player's move - SYNC for the board
   const handleMove = useCallback(
@@ -487,7 +512,17 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
       {/* Game Over / Play Again */}
       {gameStarted && !isRunning && (
         <div className="text-center">
-          <div className="text-2xl font-bold text-white mb-4">Time&apos;s Up!</div>
+          {outOfBook ? (
+            <>
+              <div className="text-2xl font-bold text-yellow-400 mb-2">Out of Book!</div>
+              <div className="text-sm text-gray-400 mb-4">
+                You&apos;ve left the opening database.<br />
+                This trainer focuses on known opening lines.
+              </div>
+            </>
+          ) : (
+            <div className="text-2xl font-bold text-white mb-4">Time&apos;s Up!</div>
+          )}
           <div className="text-lg text-gray-400 mb-4">
             {movesPlayed} moves • {score} points
           </div>
