@@ -128,6 +128,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
   const endGameOutOfBook = useCallback(() => {
     setIsRunning(false);
     setOutOfBook(true);
+    setReplayAlert(null); // Clear any "better move" message - we're ending
 
     // Save session
     const blunderCount = moveRecordsRef.current.filter(m => m.rating === 'blunder').length;

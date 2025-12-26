@@ -120,19 +120,36 @@ export function SessionHistory({ onReplay, showBlundersOnly = false }: SessionHi
             {/* Expanded details */}
             {isExpanded && (
               <div className="border-t border-zinc-700 p-3 bg-zinc-900/50">
-                {/* Move list */}
+                {/* Move list - showing both player and opponent moves */}
                 <div className="mb-3">
                   <div className="text-xs text-gray-400 mb-2">Move History:</div>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1 items-center">
                     {session.moves.map((m, i) => (
-                      <span
-                        key={i}
-                        className={`px-2 py-0.5 rounded text-xs font-mono ${ratingColors[m.rating]} text-white`}
-                        title={m.openingName || ''}
-                      >
-                        {m.move}
-                      </span>
+                      <div key={i} className="flex items-center gap-1">
+                        {/* Move number */}
+                        <span className="text-xs text-gray-500">{i + 1}.</span>
+                        {/* Player's move */}
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-mono ${ratingColors[m.rating]} text-white`}
+                          title={`Your move${m.openingName ? ` - ${m.openingName}` : ''}`}
+                        >
+                          {m.move}
+                        </span>
+                        {/* Opponent's response */}
+                        {m.opponentMove && (
+                          <span
+                            className="px-2 py-0.5 rounded text-xs font-mono bg-zinc-600 text-gray-300"
+                            title="Opponent's move"
+                          >
+                            {m.opponentMove}
+                          </span>
+                        )}
+                      </div>
                     ))}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    <span className="text-green-400">■</span> Your moves &nbsp;
+                    <span className="text-gray-400">■</span> Opponent moves
                   </div>
                 </div>
 
