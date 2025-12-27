@@ -55,7 +55,7 @@ export function Timer({ seconds, isRunning, onTimeUp, onTick, resetKey = 0 }: Ti
   };
 
   return (
-    <div className={`text-5xl font-mono font-bold ${getColor()} transition-colors`}>
+    <div className={`text-4xl font-mono font-bold ${getColor()} transition-colors`}>
       {formatTime(remaining)}
     </div>
   );

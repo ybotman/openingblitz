@@ -397,19 +397,19 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto p-4">
-      {/* Replay Mode Banner */}
+    <div className="flex flex-col items-center gap-2 w-full max-w-lg mx-auto px-2">
+      {/* Replay Mode Banner - compact */}
       {isReplayMode && (
-        <div className="w-full bg-blue-600/20 border border-blue-500 rounded-lg px-4 py-2 text-center">
-          <div className="text-blue-400 font-semibold">🔄 REPLAY MODE</div>
-          <div className="text-xs text-blue-300">Fix your blunders from the original game</div>
+        <div className="w-full bg-blue-600/20 border border-blue-500 rounded-lg px-3 py-1 text-center">
+          <span className="text-blue-400 font-semibold text-sm">🔄 REPLAY MODE</span>
+          <span className="text-xs text-blue-300 ml-2">Fix your blunders</span>
         </div>
       )}
 
-      {/* Replay Alert with Undo Button */}
+      {/* Replay Alert with Undo Button - compact */}
       {replayAlert && (
         <div
-          className={`w-full px-4 py-3 rounded-lg text-center ${
+          className={`w-full px-3 py-2 rounded-lg text-center ${
             replayAlert.type === 'blunder'
               ? 'bg-red-500/20 border border-red-500'
               : replayAlert.type === 'fixed'
@@ -417,7 +417,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
               : 'bg-yellow-500/20 border border-yellow-500'
           }`}
         >
-          <div className={`font-bold ${
+          <div className={`font-bold text-sm ${
             replayAlert.type === 'blunder' ? 'text-red-400' :
             replayAlert.type === 'fixed' ? 'text-green-400' : 'text-yellow-400'
           }`}>
@@ -426,24 +426,19 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
           {canUndo && (
             <button
               onClick={handleUndo}
-              className="mt-2 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors"
+              className="mt-1 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-medium px-3 py-1 rounded-lg transition-colors"
             >
-              ↩️ Undo & Try Again
+              ↩️ Undo
             </button>
           )}
         </div>
       )}
 
-      {/* Move Quality Progress Bar */}
-      {moveHistory.length > 0 && (
-        <MoveHistory moves={moveHistory} />
-      )}
-
-      {/* Header: Timer, Score, Streak */}
-      <div className="flex justify-between items-center w-full">
+      {/* Header: Score | Timer | Streak - inline compact */}
+      <div className="flex justify-between items-center w-full bg-zinc-800 rounded-lg px-4 py-2">
         <div className="text-center">
-          <div className="text-sm text-gray-400">SCORE</div>
-          <div className="text-3xl font-bold text-white">{score}</div>
+          <div className="text-xs text-gray-400">SCORE</div>
+          <div className="text-2xl font-bold text-white">{score}</div>
         </div>
 
         <Timer
@@ -454,18 +449,22 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
         />
 
         <div className="text-center">
-          <div className="text-sm text-gray-400">STREAK</div>
-          <div className="text-3xl font-bold text-orange-400">
+          <div className="text-xs text-gray-400">STREAK</div>
+          <div className="text-2xl font-bold text-orange-400">
             {streak > 0 ? `🔥${streak}` : '0'}
           </div>
         </div>
       </div>
 
-      {/* Opening Name */}
-      <div className="bg-zinc-800 px-4 py-2 rounded-lg text-center w-full">
-        <div className="text-xs text-gray-400">OPENING</div>
-        <div className="text-lg font-semibold text-white truncate">{openingName}</div>
+      {/* Opening Name - smaller */}
+      <div className="bg-zinc-800/50 px-3 py-1 rounded-lg text-center w-full">
+        <div className="text-sm font-medium text-white truncate">{openingName}</div>
       </div>
+
+      {/* Move Quality Progress Bar - inline with opening */}
+      {moveHistory.length > 0 && (
+        <MoveHistory moves={moveHistory} />
+      )}
 
       {/* Chessboard */}
       <ChessBoard
@@ -476,34 +475,10 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
         lastMove={lastMove ?? undefined}
       />
 
-      {/* Hints Toggle + Panel */}
-      {isRunning && isPlayerTurn && (
-        <div className="w-full">
-          <button
-            onClick={() => setShowHints(!showHints)}
-            className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
-              showHints
-                ? 'bg-yellow-600 text-white'
-                : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600'
-            }`}
-          >
-            {showHints ? '🙈 Hide Hints' : '💡 Show Hints'}
-          </button>
-          <div className="mt-2">
-            <MoveHints
-              moves={currentMoves}
-              sideToMove={config.playerColor}
-              show={showHints}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Arcade Move Feedback */}
+      {/* Arcade Move Feedback - compact inline */}
       {lastMoveResult && (
-        <div className="text-center">
-          {/* Big arcade icon */}
-          <div className={`text-5xl mb-1 ${
+        <div className="flex items-center justify-center gap-3 bg-zinc-800/50 rounded-lg px-4 py-2 w-full">
+          <div className={`text-3xl ${
             lastMoveResult.rating === 'best' ? 'animate-bounce' :
             lastMoveResult.rating === 'blunder' ? 'animate-pulse' : ''
           }`}>
@@ -512,47 +487,68 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
             {lastMoveResult.rating === 'ok' && '😐'}
             {lastMoveResult.rating === 'blunder' && '💥'}
           </div>
-          {/* Rating text */}
-          <div className={`text-xl font-black uppercase tracking-wider ${
-            lastMoveResult.rating === 'best' ? 'text-green-400' :
-            lastMoveResult.rating === 'good' ? 'text-blue-400' :
-            lastMoveResult.rating === 'ok' ? 'text-yellow-400' :
-            'text-red-400'
-          }`}>
-            {lastMoveResult.rating === 'best' && 'PERFECT!'}
-            {lastMoveResult.rating === 'good' && 'GREAT!'}
-            {lastMoveResult.rating === 'ok' && 'OK'}
-            {lastMoveResult.rating === 'blunder' && 'BLUNDER!'}
+          <div>
+            <div className={`text-lg font-black uppercase ${
+              lastMoveResult.rating === 'best' ? 'text-green-400' :
+              lastMoveResult.rating === 'good' ? 'text-blue-400' :
+              lastMoveResult.rating === 'ok' ? 'text-yellow-400' :
+              'text-red-400'
+            }`}>
+              {lastMoveResult.rating === 'best' && 'PERFECT!'}
+              {lastMoveResult.rating === 'good' && 'GREAT!'}
+              {lastMoveResult.rating === 'ok' && 'OK'}
+              {lastMoveResult.rating === 'blunder' && 'BLUNDER!'}
+            </div>
+            <div className="text-xs text-gray-400">
+              <span className="font-mono">{lastMoveResult.move}</span>
+              {streak >= 3 && lastMoveResult.rating !== 'blunder' && (
+                <span className="text-orange-400 ml-2">🔥{streak}</span>
+              )}
+            </div>
           </div>
-          {/* Points */}
-          <div className={`text-2xl font-bold ${
+          <div className={`text-xl font-bold ${
             lastMoveResult.points > 0 ? 'text-green-400' : 'text-red-400'
           }`}>
             {lastMoveResult.points > 0 ? '+' : ''}{lastMoveResult.points}
           </div>
-          {/* Move notation */}
-          <div className="text-sm text-gray-400 font-mono">
-            {lastMoveResult.move}
-          </div>
-          {/* Streak bonus indicator */}
-          {streak >= 3 && lastMoveResult.rating !== 'blunder' && (
-            <div className="text-orange-400 text-sm font-semibold mt-1 animate-pulse">
-              🔥 {streak} STREAK BONUS!
-            </div>
-          )}
         </div>
       )}
 
       {/* Thinking indicator */}
       {isThinking && (
-        <div className="text-gray-400 animate-pulse">Opponent thinking...</div>
+        <div className="text-gray-400 text-sm animate-pulse">Thinking...</div>
+      )}
+
+      {/* Hints Toggle - smaller */}
+      {isRunning && isPlayerTurn && (
+        <div className="w-full">
+          <button
+            onClick={() => setShowHints(!showHints)}
+            className={`w-full py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              showHints
+                ? 'bg-yellow-600 text-white'
+                : 'bg-zinc-700 text-gray-300'
+            }`}
+          >
+            {showHints ? '🙈 Hide' : '💡 Hints'}
+          </button>
+          {showHints && (
+            <div className="mt-1">
+              <MoveHints
+                moves={currentMoves}
+                sideToMove={config.playerColor}
+                show={showHints}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       {/* Start Button */}
       {!gameStarted && (
         <button
           onClick={startGame}
-          className={`font-bold py-4 px-8 rounded-xl text-xl transition-colors ${
+          className={`w-full font-bold py-4 rounded-xl text-xl transition-colors ${
             isReplayMode
               ? 'bg-blue-600 hover:bg-blue-700 text-white'
               : 'bg-green-600 hover:bg-green-700 text-white'
@@ -564,34 +560,27 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
 
       {/* Game Over / Play Again */}
       {gameStarted && !isRunning && (
-        <div className="text-center">
+        <div className="text-center w-full">
           {outOfBook ? (
-            <>
-              <div className="text-2xl font-bold text-yellow-400 mb-2">Out of Book!</div>
-              <div className="text-sm text-gray-400 mb-4">
-                You&apos;ve left the opening database.<br />
-                This trainer focuses on known opening lines.
-              </div>
-            </>
+            <div className="text-lg font-bold text-yellow-400 mb-2">Out of Book!</div>
           ) : (
-            <div className="text-2xl font-bold text-white mb-4">Time&apos;s Up!</div>
+            <div className="text-lg font-bold text-white mb-2">Time&apos;s Up!</div>
           )}
-          <div className="text-lg text-gray-400 mb-4">
+          <div className="text-sm text-gray-400 mb-3">
             {movesPlayed} moves • {score} points
           </div>
           <button
             onClick={startGame}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-colors"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors"
           >
             PLAY AGAIN
           </button>
         </div>
       )}
 
-      {/* Level indicator */}
-      <div className="text-sm text-gray-500">
-        Level: {config.ratingLevel} • {config.timeLimit}s • Playing as {config.playerColor}
-        {isReplayMode && ' • Replay Mode'}
+      {/* Level indicator - tiny */}
+      <div className="text-xs text-gray-500">
+        {config.ratingLevel} • {config.timeLimit}s • {config.playerColor}
       </div>
     </div>
   );

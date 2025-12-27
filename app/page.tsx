@@ -83,20 +83,22 @@ export default function Home() {
     return <Welcome onContinue={handleWelcomeContinue} />;
   }
 
+  // Is game actively being played?
+  const isPlaying = activeTab === 'play' && !showConfig;
+
   return (
-    <div className="min-h-screen bg-zinc-900 text-white">
-      {/* Milestone Banner */}
-      {milestone && (
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 py-3 px-4">
-          <div className="max-w-lg mx-auto flex justify-between items-center">
+    <div className="h-[100dvh] bg-zinc-900 text-white flex flex-col overflow-hidden">
+      {/* Milestone Banner - hide during game */}
+      {milestone && !isPlaying && (
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 py-2 px-4 flex-shrink-0">
+          <div className="max-w-lg mx-auto flex justify-between items-center text-sm">
             <div>
               <span className="font-semibold">Welcome back! </span>
-              <span className="text-blue-100">Visit #{milestone}. </span>
-              <span className="text-sm text-blue-200">Sign up to keep your stats forever!</span>
+              <span className="text-blue-100">Visit #{milestone}</span>
             </div>
             <button
               onClick={dismissMilestone}
-              className="text-white/70 hover:text-white text-xl"
+              className="text-white/70 hover:text-white text-xl leading-none"
             >
               ×
             </button>
@@ -104,55 +106,57 @@ export default function Home() {
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-zinc-800 py-4 px-6 shadow-lg">
+      {/* Header - compact during game */}
+      <header className={`bg-zinc-800 shadow-lg flex-shrink-0 ${isPlaying ? 'py-2 px-4' : 'py-3 px-4'}`}>
         <div className="max-w-lg mx-auto flex justify-between items-center">
           <h1
-            className="text-2xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent cursor-pointer"
+            className={`font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent cursor-pointer ${isPlaying ? 'text-lg' : 'text-xl'}`}
             onClick={handleBackToConfig}
           >
             OpeningBlitz
           </h1>
-          {!showConfig && activeTab === 'play' && (
+          {isPlaying && (
             <button
               onClick={handleBackToConfig}
-              className="text-sm text-gray-400 hover:text-white transition-colors"
+              className="text-xs bg-zinc-700 hover:bg-zinc-600 text-gray-300 px-3 py-1 rounded-full transition-colors"
             >
-              Settings
+              ✕ Exit
             </button>
           )}
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="bg-zinc-800/50 border-b border-zinc-700">
-        <div className="max-w-lg mx-auto flex">
-          {(['play', 'history', 'blunders', 'about'] as Tab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                if (tab === 'play') {
-                  setShowConfig(true);
-                  setReplaySession(null);
-                }
-              }}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              {tab === 'play' && 'Play'}
-              {tab === 'history' && 'History'}
-              {tab === 'blunders' && 'Blunders'}
-              {tab === 'about' && 'About'}
-            </button>
-          ))}
+      {/* Tabs - hide during game */}
+      {!isPlaying && (
+        <div className="bg-zinc-800/50 border-b border-zinc-700 flex-shrink-0">
+          <div className="max-w-lg mx-auto flex">
+            {(['play', 'history', 'blunders', 'about'] as Tab[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveTab(tab);
+                  if (tab === 'play') {
+                    setShowConfig(true);
+                    setReplaySession(null);
+                  }
+                }}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  activeTab === tab
+                    ? 'text-white border-b-2 border-blue-500'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                {tab === 'play' && 'Play'}
+                {tab === 'history' && 'History'}
+                {tab === 'blunders' && 'Blunders'}
+                {tab === 'about' && 'About'}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <main className="py-6">
+      <main className={`flex-1 overflow-y-auto ${isPlaying ? 'py-2' : 'py-4'}`}>
         {/* Play Tab */}
         {activeTab === 'play' && (
           <>
