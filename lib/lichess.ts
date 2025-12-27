@@ -59,23 +59,30 @@ export function rateMoveFromStats(
   const frequency = moveGames / totalAllGames;
   const winRate = getWinRate(move, sideToMove);
 
-  // Best move: most popular AND good win rate
+  // Most popular move: at least "good" (players shouldn't be penalized for main lines)
   const mostPopular = allMoves[0]; // Lichess returns sorted by popularity
-  if (move.san === mostPopular.san && winRate >= 0.45) {
-    return 'best';
+  if (move.san === mostPopular.san) {
+    return winRate >= 0.45 ? 'best' : 'good';
   }
 
-  // Good move: reasonably popular (>5%) and decent win rate (>45%)
-  if (frequency > 0.05 && winRate >= 0.45) {
-    return 'good';
-  }
-
-  // OK move: played sometimes (>1%) and not losing (>40%)
-  if (frequency > 0.01 && winRate >= 0.40) {
+  // Top 3 moves: at least "ok" (common alternatives are fine)
+  const topMoves = allMoves.slice(0, 3).map(m => m.san);
+  if (topMoves.includes(move.san)) {
+    if (winRate >= 0.45) return 'good';
     return 'ok';
   }
 
-  // Blunder: rare or losing
+  // Good move: reasonably popular (>5%) and decent win rate (>40%)
+  if (frequency > 0.05 && winRate >= 0.40) {
+    return 'good';
+  }
+
+  // OK move: played sometimes (>2%) or not terrible win rate (>35%)
+  if (frequency > 0.02 || winRate >= 0.35) {
+    return 'ok';
+  }
+
+  // Blunder: very rare AND poor results
   return 'blunder';
 }
 
