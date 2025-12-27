@@ -31,7 +31,28 @@ export interface StoredData {
 
 const STORAGE_KEY = 'openingblitz_data';
 const VISIT_KEY = 'openingblitz_visits';
+const BLUNDER_KEY = 'openingblitz_blunders';
 const CURRENT_VERSION = 1;
+
+// Blunder tracking for spaced repetition
+export interface BlunderRecord {
+  id: string;
+  fen: string;                    // Position where blunder occurred
+  blunderMove: string;            // What player played (wrong)
+  openingName: string;
+  playerColor: 'white' | 'black';
+  ratingLevel: number;
+  firstSeen: string;              // When first blundered
+  lastTested: string;             // When last tested in blunder mode
+  timesSeen: number;              // How many times this position was reached
+  timesFixed: number;             // How many times player got it right in testing
+  timesBlundered: number;         // How many times blundered (including retests)
+}
+
+export interface BlunderData {
+  blunders: BlunderRecord[];
+  version: number;
+}
 
 // Visit tracking
 export interface VisitData {
@@ -210,4 +231,160 @@ export function getStats() {
     totalBlunders,
     openingStats: openingStatsWithAvg,
   };
+}
+
+// ============ BLUNDER TRACKING ============
+
+function getBlunderData(): BlunderData {
+  if (typeof window === 'undefined') {
+    return { blunders: [], version: CURRENT_VERSION };
+  }
+
+  try {
+    const raw = localStorage.getItem(BLUNDER_KEY);
+    if (!raw) {
+      return { blunders: [], version: CURRENT_VERSION };
+    }
+    return JSON.parse(raw) as BlunderData;
+  } catch {
+    return { blunders: [], version: CURRENT_VERSION };
+  }
+}
+
+function saveBlunderData(data: BlunderData): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(BLUNDER_KEY, JSON.stringify(data));
+}
+
+// Record a blunder (or increment if same position seen before)
+export function recordBlunder(
+  fen: string,
+  blunderMove: string,
+  openingName: string,
+  playerColor: 'white' | 'black',
+  ratingLevel: number
+): BlunderRecord {
+  const data = getBlunderData();
+  const now = new Date().toISOString();
+
+  // Check if we already have this position (normalize FEN - remove move counters)
+  const normalizedFen = fen.split(' ').slice(0, 4).join(' ');
+  const existing = data.blunders.find(b =>
+    b.fen.split(' ').slice(0, 4).join(' ') === normalizedFen &&
+    b.playerColor === playerColor
+  );
+
+  if (existing) {
+    existing.timesBlundered++;
+    existing.timesSeen++;
+    existing.lastTested = now;
+    // Update if different blunder move at same position
+    if (existing.blunderMove !== blunderMove) {
+      existing.blunderMove = blunderMove; // Track most recent
+    }
+    saveBlunderData(data);
+    return existing;
+  }
+
+  // New blunder
+  const newBlunder: BlunderRecord = {
+    id: generateId(),
+    fen,
+    blunderMove,
+    openingName,
+    playerColor,
+    ratingLevel,
+    firstSeen: now,
+    lastTested: now,
+    timesSeen: 1,
+    timesFixed: 0,
+    timesBlundered: 1,
+  };
+
+  data.blunders.unshift(newBlunder);
+
+  // Keep max 200 blunders
+  if (data.blunders.length > 200) {
+    data.blunders = data.blunders.slice(0, 200);
+  }
+
+  saveBlunderData(data);
+  return newBlunder;
+}
+
+// Mark a blunder as fixed (player got it right in test mode)
+export function markBlunderFixed(blunderId: string): void {
+  const data = getBlunderData();
+  const blunder = data.blunders.find(b => b.id === blunderId);
+  if (blunder) {
+    blunder.timesFixed++;
+    blunder.timesSeen++;
+    blunder.lastTested = new Date().toISOString();
+    saveBlunderData(data);
+  }
+}
+
+// Mark a blunder as repeated (player blundered again in test mode)
+export function markBlunderRepeated(blunderId: string): void {
+  const data = getBlunderData();
+  const blunder = data.blunders.find(b => b.id === blunderId);
+  if (blunder) {
+    blunder.timesBlundered++;
+    blunder.timesSeen++;
+    blunder.lastTested = new Date().toISOString();
+    saveBlunderData(data);
+  }
+}
+
+// Get all blunders for testing
+export function getBlunders(): BlunderRecord[] {
+  return getBlunderData().blunders;
+}
+
+// Get blunders that need practice (sorted by priority)
+// Priority: recently blundered > low fix rate > not tested recently
+export function getBlundersForPractice(playerColor?: 'white' | 'black'): BlunderRecord[] {
+  let blunders = getBlunderData().blunders;
+
+  if (playerColor) {
+    blunders = blunders.filter(b => b.playerColor === playerColor);
+  }
+
+  // Sort by priority score (higher = needs more practice)
+  return blunders.sort((a, b) => {
+    const aFixRate = a.timesSeen > 0 ? a.timesFixed / a.timesSeen : 0;
+    const bFixRate = b.timesSeen > 0 ? b.timesFixed / b.timesSeen : 0;
+
+    // Unfixed blunders first
+    if (aFixRate === 0 && bFixRate > 0) return -1;
+    if (bFixRate === 0 && aFixRate > 0) return 1;
+
+    // Then by fix rate (lower = needs practice)
+    if (aFixRate !== bFixRate) return aFixRate - bFixRate;
+
+    // Then by recency (more recent = more urgent)
+    return new Date(b.lastTested).getTime() - new Date(a.lastTested).getTime();
+  });
+}
+
+// Get blunder stats
+export function getBlunderStats() {
+  const blunders = getBlunders();
+  const totalBlunders = blunders.length;
+  const fixed = blunders.filter(b => b.timesFixed > b.timesBlundered).length;
+  const needsPractice = blunders.filter(b => b.timesFixed <= b.timesBlundered).length;
+
+  return {
+    total: totalBlunders,
+    fixed,
+    needsPractice,
+    fixRate: totalBlunders > 0 ? Math.round((fixed / totalBlunders) * 100) : 0,
+  };
+}
+
+// Delete a blunder
+export function deleteBlunder(id: string): void {
+  const data = getBlunderData();
+  data.blunders = data.blunders.filter(b => b.id !== id);
+  saveBlunderData(data);
 }

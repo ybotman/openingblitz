@@ -8,7 +8,7 @@ import { MoveHints } from './MoveHints';
 import { MoveHistory } from './MoveHistory';
 import { getOpeningMoves, evaluateMove, getOpponentMove, isInBook } from '@/lib/lichess';
 import { DrillConfig, MoveResult, POINTS, MoveRating, LichessResponse } from '@/lib/types';
-import { saveSession, SessionRecord, MoveRecord } from '@/lib/storage';
+import { saveSession, SessionRecord, MoveRecord, recordBlunder } from '@/lib/storage';
 
 interface DrillGameProps {
   config: DrillConfig;
@@ -130,6 +130,9 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
     setOutOfBook(true);
     setReplayAlert(null); // Clear any "better move" message - we're ending
 
+    // Don't save replay sessions
+    if (isReplayMode) return;
+
     // Save session
     const blunderCount = moveRecordsRef.current.filter(m => m.rating === 'blunder').length;
     saveSession({
@@ -142,7 +145,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
       openingName: openingName + ' (left book)',
       blunderCount,
     });
-  }, [config, score, movesPlayed, openingName]);
+  }, [config, score, movesPlayed, openingName, isReplayMode]);
 
   // Make opponent's move
   const makeOpponentMove = useCallback(async (currentFen: string, moveIndex: number) => {
@@ -310,6 +313,11 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
         openingName: openingName,
       });
 
+      // Track blunders for spaced repetition (only in regular mode, not replay)
+      if (rating === 'blunder' && !isReplayMode) {
+        recordBlunder(currentFen, move.san, openingName, config.playerColor, config.ratingLevel);
+      }
+
       // Make opponent's response after a short delay
       if (!newGame.isGameOver()) {
         setTimeout(() => makeOpponentMove(newGame.fen(), replayMoveIndex), 300);
@@ -322,17 +330,23 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
 
       return true;
     },
-    [isRunning, isPlayerTurn, isThinking, config.playerColor, streak, makeOpponentMove, isReplayMode, replaySession, replayMoveIndex, openingName, replayAlert]
+    [isRunning, isPlayerTurn, isThinking, config.playerColor, config.ratingLevel, streak, makeOpponentMove, isReplayMode, replaySession, replayMoveIndex, openingName, replayAlert]
   );
 
   // Handle time up
   const handleTimeUp = useCallback(() => {
     setIsRunning(false);
 
+    // Don't save replay sessions - they would duplicate/corrupt stats
+    if (isReplayMode) {
+      onGameEnd(score, movesPlayed);
+      return;
+    }
+
     // Calculate blunder count
     const blunderCount = moveRecordsRef.current.filter(m => m.rating === 'blunder').length;
 
-    // Save session (only if not in replay mode or if you want to save replays too)
+    // Save session
     const savedSession = saveSession({
       ratingLevel: config.ratingLevel,
       playerColor: config.playerColor,
@@ -345,7 +359,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
     });
 
     onGameEnd(score, movesPlayed, savedSession.id);
-  }, [score, movesPlayed, onGameEnd, config, openingName]);
+  }, [score, movesPlayed, onGameEnd, config, openingName, isReplayMode]);
 
   // Handle undo in replay mode
   const handleUndo = useCallback(async () => {
@@ -432,7 +446,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
 
         <Timer
           seconds={config.timeLimit}
-          isRunning={isRunning}
+          isRunning={isRunning && isPlayerTurn && !isThinking}
           onTimeUp={handleTimeUp}
         />
 
