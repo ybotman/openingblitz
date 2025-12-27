@@ -157,100 +157,93 @@ export default function Home() {
         {activeTab === 'play' && (
           <>
             {showConfig ? (
-              <div className="max-w-md mx-auto p-6">
-                <h2 className="text-xl font-bold mb-6 text-center">Configure Your Drill</h2>
-
-                {/* Last Result */}
-                {lastResult && (
-                  <div className="bg-zinc-800 rounded-xl p-4 mb-6 text-center">
-                    <div className="text-sm text-gray-400">Last Game</div>
-                    <div className="text-2xl font-bold text-green-400">{lastResult.score} pts</div>
-                    <div className="text-sm text-gray-400">{lastResult.moves} moves</div>
-                  </div>
-                )}
-
-                {/* Difficulty (Rating Level) */}
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm text-gray-400">Difficulty</label>
-                    <span className="text-sm font-medium text-white">{config.ratingLevel}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="800"
-                    max="1600"
-                    step="200"
-                    value={config.ratingLevel}
-                    onChange={(e) => setConfig((c) => ({ ...c, ratingLevel: parseInt(e.target.value) }))}
-                    className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Easier</span>
-                    <span>Harder</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    {config.ratingLevel <= 800 && "Beginner - most common moves accepted"}
-                    {config.ratingLevel === 1000 && "Casual - standard moves expected"}
-                    {config.ratingLevel === 1200 && "Club player - solid moves required"}
-                    {config.ratingLevel === 1400 && "Intermediate - precise moves needed"}
-                    {config.ratingLevel >= 1600 && "Advanced - near-optimal play expected"}
-                  </p>
-                </div>
-
-                {/* Time Limit */}
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm text-gray-400">Time Limit</label>
-                    <span className="text-sm font-medium text-white">{config.timeLimit}s</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="10"
-                    max="120"
-                    step="5"
-                    value={config.timeLimit}
-                    onChange={(e) => setConfig((c) => ({ ...c, timeLimit: parseInt(e.target.value) }))}
-                    className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>10s</span>
-                    <span>120s</span>
-                  </div>
-                </div>
-
-                {/* Player Color */}
-                <div className="mb-8">
-                  <label className="block text-sm text-gray-400 mb-2">Play As</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(['white', 'black'] as const).map((color) => (
-                      <button
-                        key={color}
-                        onClick={() => setConfig((c) => ({ ...c, playerColor: color }))}
-                        className={`py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                          config.playerColor === color
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600'
-                        }`}
-                      >
-                        <span className={`w-4 h-4 rounded-full ${color === 'white' ? 'bg-white' : 'bg-zinc-900 border border-gray-500'}`} />
-                        {color.charAt(0).toUpperCase() + color.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Start Button */}
+              <div className="max-w-md mx-auto px-4 py-2">
+                {/* Start Button - FIRST on mobile */}
                 <button
                   onClick={startNewGame}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl text-xl transition-colors"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl text-xl transition-colors shadow-lg shadow-green-600/30 mb-4"
                 >
                   START DRILL
                 </button>
 
-                {/* Info */}
-                <p className="text-center text-sm text-gray-500 mt-6">
-                  Play opening moves as fast as you can!<br />
-                  Avoid blunders, earn points, build streaks.
+                {/* Last Result - Compact inline */}
+                {lastResult && (
+                  <div className="bg-zinc-800 rounded-lg px-4 py-2 mb-4 flex justify-center items-center gap-4">
+                    <span className="text-sm text-gray-400">Last:</span>
+                    <span className="text-lg font-bold text-green-400">{lastResult.score} pts</span>
+                    <span className="text-sm text-gray-400">({lastResult.moves} moves)</span>
+                  </div>
+                )}
+
+                {/* Settings Grid - More compact */}
+                <div className="bg-zinc-800 rounded-xl p-4 space-y-4">
+                  {/* Difficulty */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-sm text-gray-400">Difficulty</label>
+                      <span className="text-sm font-bold text-white">{config.ratingLevel}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="800"
+                      max="1600"
+                      step="200"
+                      value={config.ratingLevel}
+                      onChange={(e) => setConfig((c) => ({ ...c, ratingLevel: parseInt(e.target.value) }))}
+                      className="w-full h-3 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Easy</span>
+                      <span>Hard</span>
+                    </div>
+                  </div>
+
+                  {/* Time Limit */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-sm text-gray-400">Time</label>
+                      <span className="text-sm font-bold text-white">{config.timeLimit}s</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="120"
+                      step="5"
+                      value={config.timeLimit}
+                      onChange={(e) => setConfig((c) => ({ ...c, timeLimit: parseInt(e.target.value) }))}
+                      className="w-full h-3 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>10s</span>
+                      <span>120s</span>
+                    </div>
+                  </div>
+
+                  {/* Player Color - Inline */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-gray-400">Color:</label>
+                    <div className="flex gap-2 flex-1">
+                      {(['white', 'black'] as const).map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setConfig((c) => ({ ...c, playerColor: color }))}
+                          className={`flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                            config.playerColor === color
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-zinc-700 text-gray-300'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded-full ${color === 'white' ? 'bg-white' : 'bg-zinc-900 border border-gray-500'}`} />
+                          {color.charAt(0).toUpperCase() + color.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info - Smaller */}
+                <p className="text-center text-xs text-gray-500 mt-3">
+                  Tap piece → tap destination. Avoid blunders!
                 </p>
               </div>
             ) : (
