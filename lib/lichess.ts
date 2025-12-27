@@ -118,6 +118,7 @@ export function getOpponentMove(response: LichessResponse): LichessMove | null {
 // Check if position is in the opening book
 export function isInBook(response: LichessResponse): boolean {
   const totalGamesPlayed = response.white + response.draws + response.black;
-  // Lower threshold (50) to allow deeper lines in narrow rating bands
-  return response.moves.length > 0 && totalGamesPlayed >= 50;
+  // Threshold of 10 allows sidelines while still having meaningful data
+  // Main lines have 1000s of games, sidelines may have only 10-50
+  return response.moves.length > 0 && totalGamesPlayed >= 10;
 }
