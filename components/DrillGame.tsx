@@ -482,12 +482,47 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
         </div>
       )}
 
-      {/* Move Feedback */}
+      {/* Arcade Move Feedback */}
       {lastMoveResult && (
-        <div
-          className={`${getRatingColor(lastMoveResult.rating)} px-4 py-2 rounded-full text-white font-bold animate-pulse`}
-        >
-          {lastMoveResult.move} - {lastMoveResult.rating.toUpperCase()} ({lastMoveResult.points > 0 ? '+' : ''}{lastMoveResult.points})
+        <div className="text-center">
+          {/* Big arcade icon */}
+          <div className={`text-5xl mb-1 ${
+            lastMoveResult.rating === 'best' ? 'animate-bounce' :
+            lastMoveResult.rating === 'blunder' ? 'animate-pulse' : ''
+          }`}>
+            {lastMoveResult.rating === 'best' && '🎯'}
+            {lastMoveResult.rating === 'good' && '👍'}
+            {lastMoveResult.rating === 'ok' && '😐'}
+            {lastMoveResult.rating === 'blunder' && '💥'}
+          </div>
+          {/* Rating text */}
+          <div className={`text-xl font-black uppercase tracking-wider ${
+            lastMoveResult.rating === 'best' ? 'text-green-400' :
+            lastMoveResult.rating === 'good' ? 'text-blue-400' :
+            lastMoveResult.rating === 'ok' ? 'text-yellow-400' :
+            'text-red-400'
+          }`}>
+            {lastMoveResult.rating === 'best' && 'PERFECT!'}
+            {lastMoveResult.rating === 'good' && 'GREAT!'}
+            {lastMoveResult.rating === 'ok' && 'OK'}
+            {lastMoveResult.rating === 'blunder' && 'BLUNDER!'}
+          </div>
+          {/* Points */}
+          <div className={`text-2xl font-bold ${
+            lastMoveResult.points > 0 ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {lastMoveResult.points > 0 ? '+' : ''}{lastMoveResult.points}
+          </div>
+          {/* Move notation */}
+          <div className="text-sm text-gray-400 font-mono">
+            {lastMoveResult.move}
+          </div>
+          {/* Streak bonus indicator */}
+          {streak >= 3 && lastMoveResult.rating !== 'blunder' && (
+            <div className="text-orange-400 text-sm font-semibold mt-1 animate-pulse">
+              🔥 {streak} STREAK BONUS!
+            </div>
+          )}
         </div>
       )}
 
