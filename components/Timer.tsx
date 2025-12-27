@@ -1,23 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface TimerProps {
   seconds: number;
   isRunning: boolean;
   onTimeUp: () => void;
   onTick?: (remaining: number) => void;
+  resetKey?: number; // Change this to reset the timer (new game)
 }
 
-export function Timer({ seconds, isRunning, onTimeUp, onTick }: TimerProps) {
+export function Timer({ seconds, isRunning, onTimeUp, onTick, resetKey = 0 }: TimerProps) {
   const [remaining, setRemaining] = useState(seconds);
+  const hasStartedRef = useRef(false);
 
-  // Reset when seconds prop changes OR when game starts (isRunning becomes true)
+  // Reset ONLY when resetKey changes (new game) or seconds changes
   useEffect(() => {
-    if (isRunning) {
-      setRemaining(seconds);
-    }
-  }, [seconds, isRunning]);
+    setRemaining(seconds);
+    hasStartedRef.current = false;
+  }, [seconds, resetKey]);
 
   // Countdown logic
   useEffect(() => {

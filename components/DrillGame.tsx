@@ -30,6 +30,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
   const [showHints, setShowHints] = useState(false);
   const [currentMoves, setCurrentMoves] = useState<LichessResponse['moves']>([]);
   const [moveHistory, setMoveHistory] = useState<{ move: string; rating: MoveRating }[]>([]);
+  const [gameKey, setGameKey] = useState(0); // Increment to reset timer
 
   // For saving session
   const moveRecordsRef = useRef<MoveRecord[]>([]);
@@ -84,6 +85,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
     setCanUndo(false);
     setUndoState(null);
     setOutOfBook(false);
+    setGameKey(k => k + 1); // Reset timer
     moveRecordsRef.current = [];
     positionDataRef.current = null;
 
@@ -448,6 +450,7 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
           seconds={config.timeLimit}
           isRunning={isRunning && isPlayerTurn && !isThinking}
           onTimeUp={handleTimeUp}
+          resetKey={gameKey}
         />
 
         <div className="text-center">
