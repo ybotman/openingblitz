@@ -21,7 +21,7 @@ export async function getOpeningMoves(
   const encodedFen = encodeURIComponent(fen);
   const ratings = getRatingParams(ratingLevel);
 
-  const url = `${LICHESS_EXPLORER_URL}?variant=standard&speeds=blitz,rapid&ratings=${ratings}&fen=${encodedFen}`;
+  const url = `${LICHESS_EXPLORER_URL}?variant=standard&speeds=bullet,blitz,rapid,classical&ratings=${ratings}&fen=${encodedFen}`;
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -118,5 +118,6 @@ export function getOpponentMove(response: LichessResponse): LichessMove | null {
 // Check if position is in the opening book
 export function isInBook(response: LichessResponse): boolean {
   const totalGamesPlayed = response.white + response.draws + response.black;
-  return response.moves.length > 0 && totalGamesPlayed > 100;
+  // Lower threshold (50) to allow deeper lines in narrow rating bands
+  return response.moves.length > 0 && totalGamesPlayed >= 50;
 }
