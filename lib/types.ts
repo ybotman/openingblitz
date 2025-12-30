@@ -24,13 +24,15 @@ export interface LichessResponse {
 }
 
 // Game state
-export type MoveRating = 'best' | 'good' | 'ok' | 'blunder';
+export type MoveRating = 'best' | 'good' | 'ok' | 'inaccuracy' | 'blunder' | 'offbook';
 
 export interface MoveResult {
   move: string;
   rating: MoveRating;
   points: number;
   openingName?: string;
+  frequency?: number;  // % of players who play this
+  winRate?: number;    // % win rate for this move
 }
 
 export interface DrillState {
@@ -56,5 +58,7 @@ export const POINTS = {
   best: 10,
   good: 7,
   ok: 3,
+  inaccuracy: -3,
   blunder: -10,
+  offbook: 0,  // Unknown - not penalized, not rewarded
 } as const;

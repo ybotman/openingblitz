@@ -278,17 +278,23 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
       const positionData = positionDataRef.current;
       let rating: MoveRating = 'ok';
       let points = POINTS.ok;
+      let frequency: number | undefined;
+      let winRate: number | undefined;
 
       if (positionData) {
         const evaluation = evaluateMove(move.san, positionData, config.playerColor);
         rating = evaluation.rating;
+        frequency = evaluation.frequency;
+        winRate = evaluation.winRate;
         const basePoints = POINTS[evaluation.rating];
-        const currentStreak = evaluation.rating !== 'blunder' ? streak : 0;
-        const streakBonus = evaluation.rating !== 'blunder' ? Math.floor(streak / 3) : 0;
+        // Streak breaks on blunder or inaccuracy
+        const breaksStreak = rating === 'blunder' || rating === 'inaccuracy';
+        const currentStreak = !breaksStreak ? streak : 0;
+        const streakBonus = !breaksStreak ? Math.floor(streak / 3) : 0;
         points = basePoints + streakBonus;
 
         setScore((prev) => prev + points);
-        setStreak(evaluation.rating === 'blunder' ? 0 : currentStreak + 1);
+        setStreak(breaksStreak ? 0 : currentStreak + 1);
 
         if (evaluation.move?.opening?.name) {
           setOpeningName(evaluation.move.opening.name);
@@ -299,12 +305,14 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
           rating: evaluation.rating,
           points,
           openingName: evaluation.move?.opening?.name,
+          frequency,
+          winRate,
         });
         setMoveHistory((prev) => [...prev, { move: move.san, rating: evaluation.rating }]);
       } else {
-        setLastMoveResult({ move: move.san, rating: 'ok', points: POINTS.ok });
-        setScore((prev) => prev + POINTS.ok);
-        setMoveHistory((prev) => [...prev, { move: move.san, rating: 'ok' }]);
+        setLastMoveResult({ move: move.san, rating: 'offbook', points: POINTS.offbook });
+        setScore((prev) => prev + POINTS.offbook);
+        setMoveHistory((prev) => [...prev, { move: move.san, rating: 'offbook' }]);
       }
 
       // Record move for saving
@@ -392,7 +400,9 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
       case 'best': return 'bg-green-500';
       case 'good': return 'bg-blue-500';
       case 'ok': return 'bg-yellow-500';
+      case 'inaccuracy': return 'bg-orange-500';
       case 'blunder': return 'bg-red-500';
+      case 'offbook': return 'bg-purple-500';
     }
   };
 
@@ -475,39 +485,59 @@ export function DrillGame({ config, onGameEnd, replaySession }: DrillGameProps) 
         lastMove={lastMove ?? undefined}
       />
 
-      {/* Arcade Move Feedback - compact inline */}
+      {/* Arcade Move Feedback - compact inline with stats */}
       {lastMoveResult && (
         <div className="flex items-center justify-center gap-3 bg-zinc-800/50 rounded-lg px-4 py-2 w-full">
           <div className={`text-3xl ${
             lastMoveResult.rating === 'best' ? 'animate-bounce' :
-            lastMoveResult.rating === 'blunder' ? 'animate-pulse' : ''
+            (lastMoveResult.rating === 'blunder' || lastMoveResult.rating === 'inaccuracy') ? 'animate-pulse' : ''
           }`}>
             {lastMoveResult.rating === 'best' && '🎯'}
             {lastMoveResult.rating === 'good' && '👍'}
             {lastMoveResult.rating === 'ok' && '😐'}
+            {lastMoveResult.rating === 'inaccuracy' && '⚠️'}
             {lastMoveResult.rating === 'blunder' && '💥'}
+            {lastMoveResult.rating === 'offbook' && '❓'}
           </div>
-          <div>
+          <div className="flex-1">
             <div className={`text-lg font-black uppercase ${
               lastMoveResult.rating === 'best' ? 'text-green-400' :
               lastMoveResult.rating === 'good' ? 'text-blue-400' :
               lastMoveResult.rating === 'ok' ? 'text-yellow-400' :
+              lastMoveResult.rating === 'inaccuracy' ? 'text-orange-400' :
+              lastMoveResult.rating === 'offbook' ? 'text-purple-400' :
               'text-red-400'
             }`}>
               {lastMoveResult.rating === 'best' && 'PERFECT!'}
               {lastMoveResult.rating === 'good' && 'GREAT!'}
               {lastMoveResult.rating === 'ok' && 'OK'}
+              {lastMoveResult.rating === 'inaccuracy' && 'RARE'}
               {lastMoveResult.rating === 'blunder' && 'BLUNDER!'}
+              {lastMoveResult.rating === 'offbook' && 'OFF BOOK'}
             </div>
             <div className="text-xs text-gray-400">
               <span className="font-mono">{lastMoveResult.move}</span>
-              {streak >= 3 && lastMoveResult.rating !== 'blunder' && (
+              {lastMoveResult.frequency !== undefined && (
+                <span className="ml-2">
+                  {Math.round(lastMoveResult.frequency * 100)}% play
+                </span>
+              )}
+              {lastMoveResult.winRate !== undefined && (
+                <span className="ml-1 text-gray-500">
+                  ({Math.round(lastMoveResult.winRate * 100)}% win)
+                </span>
+              )}
+              {lastMoveResult.rating === 'offbook' && (
+                <span className="ml-1 text-purple-400">not in database</span>
+              )}
+              {streak >= 3 && lastMoveResult.rating !== 'blunder' && lastMoveResult.rating !== 'inaccuracy' && (
                 <span className="text-orange-400 ml-2">🔥{streak}</span>
               )}
             </div>
           </div>
           <div className={`text-xl font-bold ${
-            lastMoveResult.points > 0 ? 'text-green-400' : 'text-red-400'
+            lastMoveResult.points > 0 ? 'text-green-400' :
+            lastMoveResult.points < 0 ? 'text-red-400' : 'text-gray-400'
           }`}>
             {lastMoveResult.points > 0 ? '+' : ''}{lastMoveResult.points}
           </div>

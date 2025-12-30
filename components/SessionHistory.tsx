@@ -13,7 +13,9 @@ const ratingColors: Record<MoveRating, string> = {
   best: 'bg-green-500',
   good: 'bg-blue-500',
   ok: 'bg-yellow-500',
+  inaccuracy: 'bg-orange-500',
   blunder: 'bg-red-500',
+  offbook: 'bg-purple-500',
 };
 
 function formatDate(timestamp: string): string {

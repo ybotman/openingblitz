@@ -10,7 +10,9 @@ const ratingColors: Record<MoveRating, string> = {
   best: 'bg-green-500',
   good: 'bg-blue-500',
   ok: 'bg-yellow-500',
+  inaccuracy: 'bg-orange-500',
   blunder: 'bg-red-500',
+  offbook: 'bg-purple-500',
 };
 
 export function MoveHistory({ moves }: MoveHistoryProps) {
@@ -22,12 +24,13 @@ export function MoveHistory({ moves }: MoveHistoryProps) {
       acc[m.rating]++;
       return acc;
     },
-    { best: 0, good: 0, ok: 0, blunder: 0 } as Record<MoveRating, number>
+    { best: 0, good: 0, ok: 0, inaccuracy: 0, blunder: 0, offbook: 0 } as Record<MoveRating, number>
   );
 
   const total = moves.length;
+  // Accuracy: best=100, good=75, ok=50, offbook=50 (unknown), inaccuracy=25, blunder=0
   const accuracy = total > 0
-    ? Math.round(((counts.best * 100 + counts.good * 75 + counts.ok * 50 + counts.blunder * 0) / total))
+    ? Math.round(((counts.best * 100 + counts.good * 75 + counts.ok * 50 + counts.offbook * 50 + counts.inaccuracy * 25 + counts.blunder * 0) / total))
     : 0;
 
   return (
@@ -53,32 +56,44 @@ export function MoveHistory({ moves }: MoveHistoryProps) {
         ))}
       </div>
 
-      {/* Legend */}
-      <div className="flex justify-between text-xs border-t border-zinc-700 pt-2">
-        <div className="flex gap-3">
+      {/* Legend - compact */}
+      <div className="flex flex-wrap gap-2 text-xs border-t border-zinc-700 pt-2">
+        {counts.best > 0 && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-green-500"></span>
-            <span className="text-gray-400">Best</span>
             <span className="text-white font-medium">{counts.best}</span>
           </span>
+        )}
+        {counts.good > 0 && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-            <span className="text-gray-400">Good</span>
             <span className="text-white font-medium">{counts.good}</span>
           </span>
-        </div>
-        <div className="flex gap-3">
+        )}
+        {counts.ok > 0 && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-            <span className="text-gray-400">OK</span>
             <span className="text-white font-medium">{counts.ok}</span>
           </span>
+        )}
+        {counts.offbook > 0 && (
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+            <span className="text-white font-medium">{counts.offbook}</span>
+          </span>
+        )}
+        {counts.inaccuracy > 0 && (
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+            <span className="text-white font-medium">{counts.inaccuracy}</span>
+          </span>
+        )}
+        {counts.blunder > 0 && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-red-500"></span>
-            <span className="text-gray-400">Blunder</span>
             <span className="text-white font-medium">{counts.blunder}</span>
           </span>
-        </div>
+        )}
       </div>
     </div>
   );

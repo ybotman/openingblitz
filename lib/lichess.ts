@@ -49,41 +49,48 @@ function getWinRate(move: LichessMove, sideToMove: 'white' | 'black'): number {
 }
 
 // Rate a move based on its statistics
+// Returns rating plus the stats used
 export function rateMoveFromStats(
   move: LichessMove,
   allMoves: LichessMove[],
   sideToMove: 'white' | 'black'
-): MoveRating {
+): { rating: MoveRating; frequency: number; winRate: number } {
   const totalAllGames = allMoves.reduce((sum, m) => sum + totalGames(m), 0);
   const moveGames = totalGames(move);
-  const frequency = moveGames / totalAllGames;
+  const frequency = totalAllGames > 0 ? moveGames / totalAllGames : 0;
   const winRate = getWinRate(move, sideToMove);
 
   // Most popular move: at least "good" (players shouldn't be penalized for main lines)
   const mostPopular = allMoves[0]; // Lichess returns sorted by popularity
   if (move.san === mostPopular.san) {
-    return winRate >= 0.45 ? 'best' : 'good';
+    const rating = winRate >= 0.45 ? 'best' : 'good';
+    return { rating, frequency, winRate };
   }
 
   // Top 3 moves: at least "ok" (common alternatives are fine)
   const topMoves = allMoves.slice(0, 3).map(m => m.san);
   if (topMoves.includes(move.san)) {
-    if (winRate >= 0.45) return 'good';
-    return 'ok';
+    const rating = winRate >= 0.45 ? 'good' : 'ok';
+    return { rating, frequency, winRate };
   }
 
   // Good move: reasonably popular (>5%) and decent win rate (>40%)
   if (frequency > 0.05 && winRate >= 0.40) {
-    return 'good';
+    return { rating: 'good', frequency, winRate };
   }
 
-  // OK move: played sometimes (>2%) or not terrible win rate (>35%)
+  // OK move: played sometimes (>2%) or decent win rate (>35%)
   if (frequency > 0.02 || winRate >= 0.35) {
-    return 'ok';
+    return { rating: 'ok', frequency, winRate };
+  }
+
+  // Inaccuracy: rare but not terrible (<2% but >30% win)
+  if (winRate >= 0.30) {
+    return { rating: 'inaccuracy', frequency, winRate };
   }
 
   // Blunder: very rare AND poor results
-  return 'blunder';
+  return { rating: 'blunder', frequency, winRate };
 }
 
 // Find a move in the response and rate it
@@ -91,16 +98,21 @@ export function evaluateMove(
   san: string,
   response: LichessResponse,
   sideToMove: 'white' | 'black'
-): { rating: MoveRating; move?: LichessMove } {
+): { rating: MoveRating; move?: LichessMove; frequency?: number; winRate?: number } {
   const move = response.moves.find(m => m.san === san);
 
   if (!move) {
-    // Move not in database = likely a blunder (or very rare)
-    return { rating: 'blunder' };
+    // Move not in database = off book (unknown quality, not necessarily bad)
+    return { rating: 'offbook' };
   }
 
-  const rating = rateMoveFromStats(move, response.moves, sideToMove);
-  return { rating, move };
+  const evaluation = rateMoveFromStats(move, response.moves, sideToMove);
+  return {
+    rating: evaluation.rating,
+    move,
+    frequency: evaluation.frequency,
+    winRate: evaluation.winRate
+  };
 }
 
 // Get a random opponent move (weighted by popularity)
